@@ -16,13 +16,13 @@ A robust and type-safe library for generating Atom feeds in TypeScript/JavaScrip
 ## Installation
 
 ```bash
-npm install atom-feed-generator
+npm install atomfeed
 ```
 
 ## Quick Start
 
 ```typescript
-import { AtomFeed } from "atom-feed-generator";
+import { AtomFeed } from "atomfeed";
 
 // Create a new feed
 const feed = new AtomFeed({
