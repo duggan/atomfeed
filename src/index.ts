@@ -27,6 +27,11 @@ interface Content {
   src?: string;
 }
 
+interface Stylesheet {
+  href: string;
+  type?: string;
+}
+
 interface Entry {
   id: string;
   title: string;
@@ -59,17 +64,26 @@ interface FeedOptions {
   logo?: string;
   rights?: string;
   subtitle?: string;
+  lang?: string;
+  base?: string;
+  stylesheet?: Stylesheet;
 }
 
 class AtomFeed {
   private options: FeedOptions;
   private entries: Entry[] = [];
   private useNamespacePrefix: boolean;
+  private sortEntries: boolean;
 
-  constructor(options: FeedOptions, useNamespacePrefix: boolean = false) {
+  constructor(
+    options: FeedOptions,
+    useNamespacePrefix: boolean = false,
+    sortEntries: boolean = false
+  ) {
     this.validateOptions(options);
     this.options = options;
     this.useNamespacePrefix = useNamespacePrefix;
+    this.sortEntries = sortEntries;
   }
 
   private validateOptions(options: FeedOptions): void {
@@ -78,6 +92,22 @@ class AtomFeed {
     if (!options.updated) throw new Error("Feed updated date is required");
     if (!(options.updated instanceof Date))
       throw new Error("Feed updated must be a Date object");
+
+    if (options.icon && !this.isValidUri(options.icon))
+      throw new Error("Invalid icon URI");
+    if (options.logo && !this.isValidUri(options.logo))
+      throw new Error("Invalid logo URI");
+    if (options.base && !this.isValidUri(options.base))
+      throw new Error("Invalid xml:base URI");
+  }
+
+  private isValidUri(uri: string): boolean {
+    try {
+      new URL(uri);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private validateEntry(entry: Entry): void {
@@ -86,11 +116,83 @@ class AtomFeed {
     if (!entry.updated) throw new Error("Entry updated date is required");
     if (!(entry.updated instanceof Date))
       throw new Error("Entry updated must be a Date object");
+
+    if (entry.links) {
+      entry.links.forEach((link) => {
+        if (!this.isValidUri(link.href)) {
+          throw new Error(`Invalid link href: ${link.href}`);
+        }
+      });
+    }
+  }
+
+  addStylesheet(stylesheet: Stylesheet): void {
+    this.options.stylesheet = stylesheet;
+  }
+
+  addAuthor(person: Person) {
+    if (!this.options.authors) {
+      this.options.authors = [];
+    }
+    if (person.uri) {
+      if (!this.isValidUri(person.uri)) {
+        throw Error("Invalid person URI");
+      }
+    }
+    this.options.authors.push(person);
+  }
+
+  addLink(link: Link): void {
+    if (!this.options.links) {
+      this.options.links = [];
+    }
+    if (!this.isValidUri(link.href)) {
+      throw Error("Invalid link href");
+    }
+    this.options.links?.push(link);
+  }
+
+  addSelfLink(href: string) {
+    this.addLink({ rel: "self", href });
+  }
+
+  addAlternateLink(href: string): void {
+    this.addLink({ type: "text/html", rel: "alternate", href });
+  }
+
+  addFirstLink(href: string): void {
+    this.addLink({ rel: "first", href });
+  }
+
+  addLastLink(href: string): void {
+    this.addLink({ rel: "last", href });
+  }
+
+  addNextLink(href: string): void {
+    this.addLink({ rel: "next", href });
+  }
+
+  addPreviousLink(href: string): void {
+    this.addLink({ rel: "previous", href });
   }
 
   addEntry(entry: Entry): void {
     this.validateEntry(entry);
     this.entries.push(entry);
+  }
+
+  removeEntry(entryId: string): boolean {
+    const initialLength = this.entries.length;
+    this.entries = this.entries.filter((entry) => entry.id !== entryId);
+    return this.entries.length !== initialLength;
+  }
+
+  getEntries(): readonly Entry[] {
+    return Object.freeze([...this.entries]);
+  }
+
+  clear(): void {
+    this.entries = [];
   }
 
   private getElementName(name: string): string {
@@ -121,6 +223,9 @@ class AtomFeed {
     }
 
     if (person.uri) {
+      if (!this.isValidUri(person.uri)) {
+        throw new Error(`Invalid person URI: ${person.uri}`);
+      }
       element.elements.push({
         type: "element",
         name: this.getElementName("uri"),
@@ -292,6 +397,18 @@ class AtomFeed {
       },
     ];
 
+    const feedAttributes: any = this.useNamespacePrefix
+      ? { "xmlns:atom": "http://www.w3.org/2005/Atom" }
+      : { xmlns: "http://www.w3.org/2005/Atom" };
+
+    if (this.options.lang) {
+      feedAttributes["xml:lang"] = this.options.lang;
+    }
+
+    if (this.options.base) {
+      feedAttributes["xml:base"] = this.options.base;
+    }
+
     if (this.options.authors) {
       this.options.authors.forEach((author) => {
         elements.push({
@@ -372,7 +489,14 @@ class AtomFeed {
       });
     }
 
-    this.entries.forEach((entry) => {
+    // Sort entries if enabled
+    const entriesToAdd = this.sortEntries
+      ? [...this.entries].sort(
+          (a, b) => b.updated.getTime() - a.updated.getTime()
+        )
+      : this.entries;
+
+    entriesToAdd.forEach((entry) => {
       elements.push(this.createEntryElement(entry));
     });
 
@@ -384,12 +508,21 @@ class AtomFeed {
         },
       },
       elements: [
+        ...(this.options.stylesheet
+          ? [
+              {
+                type: "instruction",
+                name: "xml-stylesheet",
+                instruction: `type="${
+                  this.options.stylesheet.type || "text/xsl"
+                }" href="${encodeURI(this.options.stylesheet.href)}"`,
+              },
+            ]
+          : []),
         {
           type: "element",
           name: this.getElementName("feed"),
-          attributes: this.useNamespacePrefix
-            ? { "xmlns:atom": "http://www.w3.org/2005/Atom" }
-            : { xmlns: "http://www.w3.org/2005/Atom" }, // Fixed: removed unnecessary spread
+          attributes: feedAttributes,
           elements,
         },
       ],
