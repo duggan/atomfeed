@@ -1,0 +1,35 @@
+{
+  "name": "atomfeed",
+  "version": "1.0.0",
+  "description": "Atom 1.0 feed generator.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": ["typescript", "library", "atom", "feed"],
+  "author": "Ross Duggan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duggan/atomfeed"
+  },
+  "bugs": {
+    "url": "https://github.com/duggan/atomfeed/issues"
+  },
+  "homepage": "https://github.com/duggan/atomfeed#readme",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "xml-js": "^1.6.11"
+  }
+}
