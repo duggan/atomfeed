@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { xml2js } from "xml-js";
-import { AtomFeed } from "./AtomFeed";
-import type { Entry } from "./types";
+import { RawAtomFeed } from "./RawAtomFeed";
+import type { Entry, FeedOptions } from "./types";
 
 describe("AtomFeed RFC 4287 Compliance", () => {
   describe("Text Constructs (Section 3.1)", () => {
@@ -11,7 +11,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     };
 
     it("should handle plain text content", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         ...baseOptions,
         title: { content: "Simple Title", type: "text" },
       });
@@ -20,7 +20,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should handle HTML content", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         ...baseOptions,
         title: { content: "<em>HTML</em> Title", type: "html" },
       });
@@ -31,7 +31,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should handle XHTML content", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         ...baseOptions,
         title: {
           content:
@@ -47,7 +47,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     it("should reject invalid XHTML content", () => {
       expect(
         () =>
-          new AtomFeed({
+          new RawAtomFeed({
             ...baseOptions,
             title: {
               content: "<em>Invalid XHTML</em>",
@@ -58,7 +58,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should handle xml:lang attribute", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         ...baseOptions,
         title: {
           content: "Title in English",
@@ -72,43 +72,58 @@ describe("AtomFeed RFC 4287 Compliance", () => {
   });
 
   describe("Person Constructs (Section 3.2)", () => {
-    const baseOptions = {
+    const baseOptions: FeedOptions = {
       id: "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6",
       title: { content: "Test Feed" },
       updated: new Date("2024-01-01T00:00:00Z"),
     };
 
     it("should require name in person constructs", () => {
-      const feed = new AtomFeed(baseOptions);
-      expect(() => feed.addAuthor({ name: "" })).toThrow(/name is required/);
+      expect(
+        () => new RawAtomFeed({ ...baseOptions, authors: [{ name: "" }] })
+      ).toThrow(/name is required/);
     });
 
     it("should validate email format", () => {
-      const feed = new AtomFeed(baseOptions);
-      expect(() =>
-        feed.addAuthor({
-          name: "John Doe",
-          email: "not-an-email",
-        })
+      expect(
+        () =>
+          new RawAtomFeed({
+            ...baseOptions,
+            authors: [
+              {
+                name: "John Doe",
+                email: "not-an-email",
+              },
+            ],
+          })
       ).toThrow(/Invalid person email/);
     });
 
     it("should validate URI format", () => {
-      const feed = new AtomFeed(baseOptions);
-      expect(() =>
-        feed.addAuthor({
-          name: "John Doe",
-          uri: "not-a-uri",
-        })
+      expect(
+        () =>
+          new RawAtomFeed({
+            ...baseOptions,
+            authors: [
+              {
+                name: "John Doe",
+                uri: "not-a-uri",
+              },
+            ],
+          })
       ).toThrow(/Invalid person URI/);
     });
 
     it("should handle complete person construct", () => {
-      const feed = new AtomFeed(baseOptions);
-      feed.addAuthor({
-        name: "John Doe",
-        email: "john@example.com",
-        uri: "https://example.com/john",
+      const feed = new RawAtomFeed({
+        ...baseOptions,
+        authors: [
+          {
+            name: "John Doe",
+            email: "john@example.com",
+            uri: "https://example.com/john",
+          },
+        ],
       });
       const xml = feed.toXml();
       expect(xml).includes("<name>John Doe</name>");
@@ -126,7 +141,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     it("should validate RFC 3339 dates", () => {
       expect(
         () =>
-          new AtomFeed({
+          new RawAtomFeed({
             ...baseOptions,
             updated: new Date("invalid"),
           })
@@ -134,7 +149,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should format dates according to RFC 3339", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         ...baseOptions,
         updated: new Date("2024-01-01T12:00:00Z"),
       });
@@ -143,7 +158,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should handle timezone offsets", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         ...baseOptions,
         updated: new Date("2024-01-01T12:00:00-05:00"),
       });
@@ -154,7 +169,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
   });
 
   describe("Content (Section 4.1.3)", () => {
-    let feed: AtomFeed;
+    let feed: RawAtomFeed;
     const baseEntry = {
       id: "urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a",
       title: { content: "Test Entry" },
@@ -162,7 +177,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     };
 
     beforeEach(() => {
-      feed = new AtomFeed({
+      feed = new RawAtomFeed({
         id: "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6",
         title: { content: "Test Feed" },
         updated: new Date("2024-01-01T00:00:00Z"),
@@ -250,10 +265,10 @@ describe("AtomFeed RFC 4287 Compliance", () => {
   });
 
   describe("Categories (Section 4.2.2)", () => {
-    let feed: AtomFeed;
+    let feed: RawAtomFeed;
 
     beforeEach(() => {
-      feed = new AtomFeed({
+      feed = new RawAtomFeed({
         id: "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6",
         title: { content: "Test Feed" },
         updated: new Date("2024-01-01T00:00:00Z"),
@@ -308,32 +323,35 @@ describe("AtomFeed RFC 4287 Compliance", () => {
   });
 
   describe("Links (Section 4.2.7)", () => {
-    let feed: AtomFeed;
+    let options: FeedOptions;
 
     beforeEach(() => {
-      feed = new AtomFeed({
+      options = {
         id: "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6",
         title: { content: "Test Feed" },
         updated: new Date("2024-01-01T00:00:00Z"),
-      });
+      };
     });
 
     it("should validate href IRI", () => {
-      expect(() =>
-        feed.addLink({
-          href: "not-a-uri",
-        })
+      expect(
+        () => new RawAtomFeed({ ...options, links: [{ href: "not-a-uri" }] })
       ).toThrow(/Invalid link href/);
     });
 
     it("should handle all link attributes", () => {
-      feed.addLink({
-        href: "https://example.com",
-        rel: "alternate",
-        type: "text/html",
-        hreflang: "en-US",
-        title: "Homepage",
-        length: "1000",
+      const feed = new RawAtomFeed({
+        ...options,
+        links: [
+          {
+            href: "https://example.com",
+            rel: "alternate",
+            type: "text/html",
+            hreflang: "en-US",
+            title: "Homepage",
+            length: "1000",
+          },
+        ],
       });
       const xml = feed.toXml();
       expect(xml).includes('href="https://example.com"');
@@ -343,28 +361,11 @@ describe("AtomFeed RFC 4287 Compliance", () => {
       expect(xml).includes('title="Homepage"');
       expect(xml).includes('length="1000"');
     });
-
-    it("should provide convenience methods for common link types", () => {
-      feed.addSelfLink("https://example.com/feed.xml");
-      feed.addAlternateLink("https://example.com");
-      feed.addFirstLink("https://example.com/page1");
-      feed.addLastLink("https://example.com/page10");
-      feed.addNextLink("https://example.com/page2");
-      feed.addPreviousLink("https://example.com/page1");
-
-      const xml = feed.toXml();
-      expect(xml).includes('rel="self"');
-      expect(xml).includes('rel="alternate"');
-      expect(xml).includes('rel="first"');
-      expect(xml).includes('rel="last"');
-      expect(xml).includes('rel="next"');
-      expect(xml).includes('rel="previous"');
-    });
   });
 
   describe("Extensibility (Section 6)", () => {
     it("should support namespace prefixing", () => {
-      const feed = new AtomFeed(
+      const feed = new RawAtomFeed(
         {
           id: "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6",
           title: { content: "Test Feed" },
@@ -380,10 +381,10 @@ describe("AtomFeed RFC 4287 Compliance", () => {
   });
 
   describe("Entry Management", () => {
-    let feed: AtomFeed;
+    let feed: RawAtomFeed;
 
     beforeEach(() => {
-      feed = new AtomFeed({
+      feed = new RawAtomFeed({
         id: "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6",
         title: { content: "Test Feed" },
         updated: new Date("2024-01-01T00:00:00Z"),
@@ -391,7 +392,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should sort entries by date when enabled", () => {
-      const feed = new AtomFeed(
+      const feed = new RawAtomFeed(
         {
           id: "test",
           title: { content: "Test" },
@@ -428,7 +429,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should maintain entry order when sorting disabled", () => {
-      const feed = new AtomFeed(
+      const feed = new RawAtomFeed(
         {
           id: "test",
           title: { content: "Test" },
@@ -507,7 +508,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
 
   describe("XML Generation", () => {
     it("should generate valid XML declaration", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         id: "test",
         title: { content: "Test" },
         updated: new Date(),
@@ -517,7 +518,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should properly escape special characters", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         id: "test",
         title: { content: "Test & <Demo>" },
         updated: new Date(),
@@ -527,7 +528,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should handle stylesheet processing instruction", () => {
-      const feed = new AtomFeed(
+      const feed = new RawAtomFeed(
         {
           id: "test",
           title: { content: "Test" },
@@ -547,7 +548,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should use default stylesheet type when not provided", () => {
-      const feed = new AtomFeed(
+      const feed = new RawAtomFeed(
         {
           id: "test",
           title: { content: "Test" },
@@ -564,13 +565,11 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should properly encode URIs in href attributes", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         id: "test",
         title: { content: "Test" },
         updated: new Date(),
-      });
-      feed.addLink({
-        href: "https://example.com/path with spaces",
+        links: [{ href: "https://example.com/path with spaces" }],
       });
       const xml = feed.toXml();
       expect(xml).includes('href="https://example.com/path%20with%20spaces"');
@@ -579,7 +578,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
 
   describe("Generator Element", () => {
     it("should include generator information", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         id: "test",
         title: { content: "Test" },
         updated: new Date(),
@@ -597,7 +596,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should handle minimal generator information", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         id: "test",
         title: { content: "Test" },
         updated: new Date(),
@@ -612,7 +611,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
 
   describe("Language and Base URI Support", () => {
     it("should handle xml:lang attribute", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         id: "test",
         title: { content: "Test" },
         updated: new Date(),
@@ -623,7 +622,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     });
 
     it("should handle xml:base attribute", () => {
-      const feed = new AtomFeed({
+      const feed = new RawAtomFeed({
         id: "test",
         title: { content: "Test" },
         updated: new Date(),
@@ -636,7 +635,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
     it("should validate base URI", () => {
       expect(
         () =>
-          new AtomFeed({
+          new RawAtomFeed({
             id: "test",
             title: { content: "Test" },
             updated: new Date(),
@@ -648,7 +647,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
 
   describe("Full Feed Generation", () => {
     it("should generate a complete feed with all features", () => {
-      const feed = new AtomFeed(
+      const feed = new RawAtomFeed(
         {
           id: "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6",
           title: { content: "Example Feed", type: "text" },
@@ -693,14 +692,6 @@ describe("AtomFeed RFC 4287 Compliance", () => {
         }
       );
 
-      // Add all types of links
-      feed.addSelfLink("https://example.com/feed.xml");
-      feed.addAlternateLink("https://example.com");
-      feed.addFirstLink("https://example.com/page1");
-      feed.addLastLink("https://example.com/page10");
-      feed.addNextLink("https://example.com/page2");
-      feed.addPreviousLink("https://example.com/page1");
-
       // Add an entry with all possible elements
       feed.addEntry({
         id: "urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a",
@@ -733,8 +724,6 @@ describe("AtomFeed RFC 4287 Compliance", () => {
       expect(feedElement.attributes.xmlns).toBe("http://www.w3.org/2005/Atom");
       expect(feedElement.attributes["xml:lang"]).toBe("en-US");
       expect(feedElement.attributes["xml:base"]).toBe("https://example.com/");
-
-      // Additional structure tests could be added here...
     });
   });
 });

@@ -1,273 +1,213 @@
-# TypeScript Atom Feed Generator
+# AtomFeed
 
-A robust and type-safe library for generating Atom feeds in TypeScript/JavaScript. This library provides a clean, intuitive API for creating Atom feeds that comply with the [RFC 4287](https://tools.ietf.org/html/rfc4287) specification.
+A TypeScript library for generating Atom feeds, supporting pagination and XML stylesheets.
 
 ## Features
 
-- 🎯 Fully typed with TypeScript
-- ✅ RFC 4287 compliant
-- 🔒 Input validation with helpful error messages
-- 🎨 Optional XSLT stylesheet support
-- 🏷️ Optional namespace prefixing
-- 🔄 Entry sorting by date
-- 🔗 Helper methods for common link types
-- 🧪 Comprehensive test coverage
+- Implements core Atom feed features
+- Type-safe API with comprehensive TypeScript definitions
+- High-level BlogFeed interface for common blogging use cases
+- Low-level RawAtomFeed interface for complete control
+- Built-in validation for dates, language tags, and required fields
+- Support for XML stylesheets
+- Pagination helpers
+- Entry sorting options
+- Flexible author/contributor management
+- Support for both text and HTML content
 
 ## Installation
 
 ```bash
 npm install atomfeed
+# or
+yarn add atomfeed
 ```
 
 ## Quick Start
 
 ```typescript
-import { AtomFeed } from "atomfeed";
+import { BlogFeed } from "atomfeed";
 
 // Create a new feed
-const feed = new AtomFeed({
-  id: "https://example.com/feed",
+const feed = new BlogFeed({
+  id: "https://example.com/blog",
   title: "My Blog",
-  updated: new Date(),
-});
-
-// Add an entry
-feed.addEntry({
-  id: "https://example.com/posts/1",
-  title: "Hello World",
-  updated: new Date(),
-  content: {
-    content: "This is my first blog post!",
-    type: "text",
+  subtitle: "Thoughts and musings",
+  author: {
+    name: "John Doe",
+    email: "john@example.com",
+    website: "https://example.com",
   },
 });
 
-// Generate XML
+// Add a post
+feed.addPost({
+  id: "https://example.com/blog/first-post",
+  title: "My First Post",
+  content: "<p>Hello, world!</p>",
+  contentType: "html",
+  published: new Date(),
+  categories: ["introduction", "first-post"],
+});
+
+// Generate the feed XML
+const xml = feed.generate();
+```
+
+## BlogFeed API
+
+### Constructor Options
+
+```typescript
+interface BlogFeedOptions {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  author?: Author;
+  authors?: Author | Author[];
+  contributors?: Author | Author[];
+  links?: string | string[];
+  pagination?: PaginationLinks;
+  language?: string;
+  updated?: Date;
+  icon?: string;
+  logo?: string;
+  rights?: string;
+  stylesheet?: string;
+}
+
+interface Author {
+  name: string;
+  email?: string;
+  website?: string;
+}
+```
+
+### Methods
+
+- `addPost(post: BlogPost)`: Add a new post to the feed
+- `removePost(postId: string)`: Remove a post by ID
+- `getPosts()`: Get all posts in the feed
+- `clear()`: Remove all posts
+- `generate()`: Generate the feed XML
+- `setPagination(pagination: PaginationLinks)`: Update pagination links
+- `getPagination()`: Get current pagination links
+
+### BlogPost Interface
+
+```typescript
+interface BlogPost {
+  id: string;
+  title: string;
+  content: string;
+  contentType?: "text" | "html" | "xhtml";
+  summary?: string;
+  author?: Author;
+  authors?: Author | Author[];
+  contributors?: Author | Author[];
+  published?: Date;
+  updated?: Date;
+  links?: string | string[];
+  categories?: string | string[];
+  rights?: string;
+}
+```
+
+## RawAtomFeed API
+
+For cases requiring more control, the `RawAtomFeed` class provides direct access to building the Atom structures more directly.
+
+```typescript
+import { RawAtomFeed } from "atom-feed";
+
+const feed = new RawAtomFeed(
+  {
+    id: "https://example.com/feed",
+    title: {
+      content: "My Feed",
+      type: "text",
+    },
+    updated: new Date(),
+  },
+  false,
+  true
+);
+
+feed.addEntry({
+  id: "https://example.com/entry1",
+  title: {
+    content: "Entry Title",
+    type: "text",
+  },
+  updated: new Date(),
+  content: {
+    content: "<p>Entry content</p>",
+    type: "html",
+  },
+});
+
 const xml = feed.toXml();
 ```
 
-## API Reference
-
-### Creating a Feed
-
-The `AtomFeed` constructor accepts three parameters:
-
-```typescript
-const feed = new AtomFeed(
-  options: FeedOptions,
-  useNamespacePrefix: boolean = false,
-  sortEntries: boolean = false
-);
-```
-
-#### FeedOptions
-
-Required fields:
-
-- `id`: Unique identifier for the feed
-- `title`: Human-readable title
-- `updated`: Last update timestamp
-
-Optional fields:
-
-- `authors`: Array of `Person` objects
-- `contributors`: Array of `Person` objects
-- `categories`: Array of `Category` objects
-- `generator`: Information about the generating software
-- `icon`: URI to feed icon
-- `links`: Array of `Link` objects
-- `logo`: URI to feed logo
-- `rights`: Copyright information
-- `subtitle`: Feed subtitle
-- `lang`: XML language attribute
-- `base`: XML base URI
-- `stylesheet`: XSLT stylesheet configuration
-
-### Adding Content
-
-#### Authors and Contributors
-
-```typescript
-feed.addAuthor({
-  name: "John Doe",
-  email: "john@example.com", // optional
-  uri: "https://example.com/john", // optional
-});
-```
-
-#### Links
-
-```typescript
-// Add generic link
-feed.addLink({
-  href: "https://example.com",
-  rel: "alternate",
-  type: "text/html",
-});
-
-// Helper methods for common link types
-feed.addSelfLink("https://example.com/feed.xml");
-feed.addAlternateLink("https://example.com");
-feed.addFirstLink("https://example.com/page1");
-feed.addLastLink("https://example.com/page10");
-feed.addNextLink("https://example.com/page2");
-feed.addPreviousLink("https://example.com/page1");
-```
-
-#### Entries
-
-```typescript
-feed.addEntry({
-  id: "unique-entry-id",
-  title: "Entry Title",
-  updated: new Date(),
-  authors: [{ name: "John Doe" }], // optional
-  content: {
-    // optional
-    content: "Entry content",
-    type: "text", // or "html", "xhtml", etc.
-  },
-  summary: "Entry summary", // optional
-  published: new Date(), // optional
-  rights: "Copyright notice", // optional
-  links: [], // optional
-});
-```
-
-### Entry Management
-
-```typescript
-// Get all entries (returns frozen array)
-const entries = feed.getEntries();
-
-// Remove an entry
-feed.removeEntry("entry-id");
-
-// Clear all entries
-feed.clear();
-```
-
-### Stylesheet Support
-
-```typescript
-feed.addStylesheet({
-  href: "styles.xsl",
-  type: "text/xsl", // optional, defaults to "text/xsl"
-});
-```
-
-## Types
-
-### Person
-
-```typescript
-interface Person {
-  name: string;
-  email?: string;
-  uri?: string;
-}
-```
-
-### Category
-
-```typescript
-interface Category {
-  term: string;
-  scheme?: string;
-  label?: string;
-}
-```
-
-### Link
-
-```typescript
-interface Link {
-  href: string;
-  rel?: string;
-  type?: string;
-  hreflang?: string;
-  title?: string;
-  length?: string;
-}
-```
-
-### Content
-
-```typescript
-interface Content {
-  content: string;
-  type?: string;
-  src?: string;
-}
-```
+See the type definitions for complete `FeedOptions` and `Entry` interfaces.
 
 ## Validation
 
-The library performs validation on:
+The library performs validation for:
 
-- Required fields for feeds and entries
-- URI formats for links, icons, and logos
-- Date object types
-- XML special character escaping
+- RFC 3339 dates
+- Language tags (RFC 5646)
+- Required fields according to the Atom specification
+- Link relations and attributes
+- XML content types
 
-## XML Output
+## Examples
 
-- Produces well-formed XML with proper encoding
-- Supports optional atom namespace prefixing
-- Handles XML special characters
-- Optional sorting of entries by date
-- XSLT stylesheet processing instruction support
-
-## Example with All Features
+### Feed with Pagination
 
 ```typescript
-const feed = new AtomFeed(
-  {
-    id: "https://example.com/feed",
-    title: "My Blog",
-    updated: new Date(),
-    authors: [{ name: "John Doe", email: "john@example.com" }],
-    generator: {
-      name: "My Blog Software",
-      version: "1.0",
-      uri: "https://example.com/software",
-    },
-    lang: "en-US",
-    stylesheet: {
-      href: "atom.xsl",
-      type: "text/xsl",
-    },
+const feed = new BlogFeed({
+  id: "https://example.com/blog",
+  title: "My Blog",
+  pagination: {
+    first: "https://example.com/blog/page/1",
+    last: "https://example.com/blog/page/5",
+    next: "https://example.com/blog/page/2",
+    current: "https://example.com/blog/page/1",
   },
-  true,
-  true
-); // Use namespace prefix and sort entries
-
-feed.addLink({
-  href: "https://example.com",
-  rel: "alternate",
-  type: "text/html",
 });
+```
 
-feed.addEntry({
-  id: "https://example.com/posts/1",
-  title: "First Post",
-  updated: new Date(),
-  content: {
-    content: "<h1>Hello World</h1>",
-    type: "html",
-  },
-  summary: "My first blog post",
-  published: new Date(),
-  rights: "© 2024",
+### Multiple Authors
+
+```typescript
+const feed = new BlogFeed({
+  id: "https://example.com/blog",
+  title: "Team Blog",
+  authors: [
+    {
+      name: "Alice Smith",
+      email: "alice@example.com",
+    },
+    {
+      name: "Bob Jones",
+      email: "bob@example.com",
+    },
+  ],
 });
+```
 
-const xml = feed.toXml();
+### Custom Stylesheet
+
+```typescript
+const feed = new BlogFeed({
+  id: "https://example.com/blog",
+  title: "My Blog",
+  stylesheet: "https://example.com/feed.xsl",
+});
 ```
 
 ## License
 
 MIT
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.

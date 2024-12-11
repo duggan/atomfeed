@@ -12,16 +12,15 @@ import {
 import {
   validateFeedOptions,
   validateEntry,
-  validatePerson,
-  validateLink,
   isValidRfc3339Date,
   isValidLanguageTag,
+  validateLink,
 } from "./validators";
 
 /**
  * RFC 4287 compliant Atom feed generator
  */
-export class AtomFeed {
+export class RawAtomFeed {
   private options: FeedOptions;
   private entries: Entry[] = [];
   private useNamespacePrefix: boolean;
@@ -59,74 +58,6 @@ export class AtomFeed {
     this.stylesheet = stylesheet;
   }
 
-  addTitle(title: string): void {
-    this.options.title = { content: title };
-  }
-
-  /**
-   * Add an author to the feed
-   */
-  addAuthor(person: Person): void {
-    if (!this.options.authors) {
-      this.options.authors = [];
-    }
-    validatePerson(person);
-    this.options.authors.push(person);
-  }
-
-  /**
-   * Add a link to the feed
-   */
-  addLink(link: Link): void {
-    if (!this.options.links) {
-      this.options.links = [];
-    }
-    validateLink(link);
-    this.options.links.push(link);
-  }
-
-  /**
-   * Add a self link to the feed
-   */
-  addSelfLink(href: string): void {
-    this.addLink({ rel: "self", href });
-  }
-
-  /**
-   * Add an alternate link to the feed
-   */
-  addAlternateLink(href: string): void {
-    this.addLink({ type: "text/html", rel: "alternate", href });
-  }
-
-  /**
-   * Add a first link for pagination
-   */
-  addFirstLink(href: string): void {
-    this.addLink({ rel: "first", href });
-  }
-
-  /**
-   * Add a last link for pagination
-   */
-  addLastLink(href: string): void {
-    this.addLink({ rel: "last", href });
-  }
-
-  /**
-   * Add a next link for pagination
-   */
-  addNextLink(href: string): void {
-    this.addLink({ rel: "next", href });
-  }
-
-  /**
-   * Add a previous link for pagination
-   */
-  addPreviousLink(href: string): void {
-    this.addLink({ rel: "previous", href });
-  }
-
   /**
    * Add an entry to the feed
    */
@@ -149,6 +80,25 @@ export class AtomFeed {
    */
   getEntries(): readonly Entry[] {
     return Object.freeze([...this.entries]);
+  }
+
+  /**
+   * Get all links in the feed
+   */
+  getLinks(): readonly Link[] {
+    return this.options.links || [];
+  }
+
+  /**
+   * Set links if all are valid.
+   */
+  setLinks(links: Link[]): void {
+    let updatedLinks = [];
+    for (const link of links) {
+      validateLink(link);
+      updatedLinks.push(link);
+    }
+    this.options.links = updatedLinks;
   }
 
   /**

@@ -1,1 +1,2 @@
-export { AtomFeed } from "./AtomFeed";
+export { RawAtomFeed } from "./RawAtomFeed";
+export { BlogFeed } from "./BlogFeed";
