@@ -249,7 +249,7 @@ class AtomFeed {
   }
 
   private createLinkElement(link: Link): any {
-    const attributes: any = { href: link.href };
+    const attributes: any = { href: encodeURI(link.href) };
     if (link.rel) attributes.rel = link.rel;
     if (link.type) attributes.type = link.type;
     if (link.hreflang) attributes.hreflang = link.hreflang;
