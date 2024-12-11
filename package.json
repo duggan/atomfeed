@@ -12,7 +12,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "coverage": "vitest --coverage.enabled true"
   },
   "keywords": [
     "typescript",
@@ -32,6 +33,7 @@
   "homepage": "https://github.com/duggan/atomfeed#readme",
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.8",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
