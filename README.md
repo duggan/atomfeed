@@ -116,7 +116,7 @@ interface BlogPost {
 
 ## RawAtomFeed API
 
-For cases requiring more control, the `RawAtomFeed` class provides direct access to building the Atom structures more directly.
+For cases requiring more control, the `RawAtomFeed` class provides direct access to building the Atom structures.
 
 ```typescript
 import { RawAtomFeed } from "atom-feed";
