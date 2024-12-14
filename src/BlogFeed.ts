@@ -70,6 +70,10 @@ export class BlogFeed {
     );
   }
 
+  private hasHtml(text: string): Boolean {
+    return /&lt;[^&]+&gt;|<[^>]+>/.test(text);
+  }
+
   private convertPerson(person: Author): Person {
     return {
       name: person.name,
@@ -100,7 +104,7 @@ export class BlogFeed {
   private convertTextConstruct(text: string): TextConstruct {
     return {
       content: text,
-      type: text.includes("<") ? "html" : "text",
+      type: this.hasHtml(text) ? "html" : "text",
     };
   }
 
@@ -193,11 +197,20 @@ export class BlogFeed {
 
   private convertContent(
     content: string,
-    contentType: BlogPost["contentType"] = "text"
+    contentType?: BlogPost["contentType"]
   ): Content {
+    // If contentType is explicitly set, use it
+    if (contentType) {
+      return {
+        content,
+        type: contentType,
+      };
+    }
+
+    // Otherwise detect HTML
     return {
       content,
-      type: contentType,
+      type: this.hasHtml(content) ? "html" : "text",
     };
   }
 

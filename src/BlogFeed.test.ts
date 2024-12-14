@@ -283,4 +283,82 @@ describe("BlogFeed", () => {
       expect(result.feed.entry).toBeUndefined();
     });
   });
+
+  describe("content type detection", () => {
+    test("auto-detects escaped HTML content", () => {
+      feed.addPost({
+        id: "post-1",
+        title: "Test Post",
+        content:
+          "&lt;p&gt;Hello, &lt;strong&gt;world!&lt;/strong&gt;&lt;/p&gt;",
+        // Note: no contentType specified
+      });
+
+      const xml = feed.generate();
+      const result = xml2js(xml, { compact: true }) as ElementCompact;
+      const entry = result.feed.entry;
+
+      // Check that type was automatically set to html
+      const contentType =
+        entry.content._attributes?.type || entry.content.attributes?.type;
+      expect(contentType).toBe("html");
+
+      // Verify content was preserved
+      expect(entry.content._text).toBe(
+        "&lt;p&gt;Hello, &lt;strong&gt;world!&lt;/strong&gt;&lt;/p&gt;"
+      );
+    });
+
+    test("auto-detects unescaped HTML content", () => {
+      feed.addPost({
+        id: "post-1",
+        title: "Test Post",
+        content: "<p>Hello, <strong>world!</strong></p>",
+        // Note: no contentType specified
+      });
+
+      const xml = feed.generate();
+      const result = xml2js(xml, { compact: true }) as ElementCompact;
+      const entry = result.feed.entry;
+
+      const contentType =
+        entry.content._attributes?.type || entry.content.attributes?.type;
+      expect(contentType).toBe("html");
+    });
+
+    test("detects plain text content correctly", () => {
+      feed.addPost({
+        id: "post-1",
+        title: "Test Post",
+        content: "Hello, world! This is not HTML",
+        // Note: no contentType specified
+      });
+
+      const xml = feed.generate();
+      const result = xml2js(xml, { compact: true }) as ElementCompact;
+      const entry = result.feed.entry;
+
+      const contentType =
+        entry.content._attributes?.type || entry.content.attributes?.type;
+      expect(contentType).toBe("text");
+    });
+
+    test("explicit contentType overrides auto-detection", () => {
+      // Even though this contains HTML, we explicitly set it as text
+      feed.addPost({
+        id: "post-1",
+        title: "Test Post",
+        content: "<p>Hello, world!</p>",
+        contentType: "text",
+      });
+
+      const xml = feed.generate();
+      const result = xml2js(xml, { compact: true }) as ElementCompact;
+      const entry = result.feed.entry;
+
+      const contentType =
+        entry.content._attributes?.type || entry.content.attributes?.type;
+      expect(contentType).toBe("text");
+    });
+  });
 });
