@@ -536,6 +536,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
         },
         false,
         false,
+        "updated",
         {
           href: "style.xsl",
           type: "text/xsl",
@@ -556,6 +557,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
         },
         false,
         false,
+        "updated",
         {
           href: "style.xsl",
         }
@@ -686,6 +688,7 @@ describe("AtomFeed RFC 4287 Compliance", () => {
         },
         false,
         false,
+        "updated",
         {
           href: "style.xsl",
           type: "text/xsl",

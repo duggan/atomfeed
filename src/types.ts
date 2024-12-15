@@ -73,6 +73,11 @@ export interface Stylesheet {
 }
 
 /**
+ * Sort field
+ */
+export type SortField = "published" | "updated";
+
+/**
  * RFC 4287 Section 4.1.2 - Generator Configuration
  */
 export interface Generator {

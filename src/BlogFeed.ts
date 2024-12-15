@@ -6,6 +6,7 @@ import {
   Link,
   Category,
   Content,
+  SortField,
 } from "./types";
 import { RawAtomFeed } from "./RawAtomFeed";
 
@@ -39,6 +40,7 @@ interface BlogFeedOptions {
   logo?: string;
   rights?: string;
   stylesheet?: string;
+  sortField?: SortField;
 }
 
 interface BlogPost {
@@ -65,7 +67,8 @@ export class BlogFeed {
     this.feed = new RawAtomFeed(
       feedOptions,
       false,
-      true, // Sort entries by default
+      true, // sort entries
+      options.sortField ? options.sortField : "published", // sort by published by default
       options.stylesheet ? { href: options.stylesheet } : undefined
     );
   }

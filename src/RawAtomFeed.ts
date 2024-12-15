@@ -8,6 +8,7 @@ import {
   Entry,
   FeedOptions,
   Stylesheet,
+  SortField,
 } from "./types";
 import {
   validateFeedOptions,
@@ -25,6 +26,7 @@ export class RawAtomFeed {
   private entries: Entry[] = [];
   private useNamespacePrefix: boolean;
   private sortEntries: boolean;
+  private sortField: SortField;
   private stylesheet?: Stylesheet;
 
   /**
@@ -37,6 +39,7 @@ export class RawAtomFeed {
     options: FeedOptions,
     useNamespacePrefix: boolean = false,
     sortEntries: boolean = false,
+    sortField: SortField = "updated",
     stylesheet?: Stylesheet
   ) {
     if (options.lang && !isValidLanguageTag(options.lang)) {
@@ -55,6 +58,7 @@ export class RawAtomFeed {
     this.options = options;
     this.useNamespacePrefix = useNamespacePrefix;
     this.sortEntries = sortEntries;
+    this.sortField = sortField;
     this.stylesheet = stylesheet;
   }
 
@@ -112,8 +116,12 @@ export class RawAtomFeed {
     if (!this.sortEntries) {
       return this.entries;
     }
+    // sort by sortField - if an entry is missing the field,
+    // give it a default that sorts it at the bottom.
     return [...this.entries].sort(
-      (a, b) => b.updated.getTime() - a.updated.getTime()
+      (a, b) =>
+        (b[this.sortField] || new Date(0)).getTime() -
+        (a[this.sortField] || new Date(0)).getTime()
     );
   }
 
